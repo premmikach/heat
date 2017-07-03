@@ -1,0 +1,51 @@
+heat_template_version: 2015-04-30
+
+description: HOT template to deploy two servers to an existing Neutron network.
+
+parameters:
+  key:
+    type: string
+    description: Keypair for authentication
+    default: keypair
+  flavor:
+    type: string
+    description: Flavor to use for servers
+    default: m1.small
+  image:
+    type: string
+    description: Name of image to use for servers
+    default: Fedora
+
+resources:
+  web_secgroup:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      rules:
+        - protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 80
+          port_range_max: 80
+        - protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 443
+          port_range_max: 443
+
+  instance_port:
+    type: OS::Neutron::Port
+    properties:
+      network: private
+      security_groups:
+        - default
+        - { get_resource: web_secgroup }
+      fixed_ips:
+        - subnet_id: private-subnet
+
+  instance:
+    type: OS::Nova::Server
+    properties:
+      name: test_by_heat
+      flavor: { get_param: flavor }
+      image: { get_param: image }
+      key_name: { get_param: key }
+      networks:
+        - port: { get_resource: instance_port }
